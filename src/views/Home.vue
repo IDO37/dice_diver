@@ -33,24 +33,8 @@
       </div>
     </div>
     
-    <div class="dice-preview">
-      <h2>게임 요소</h2>
-      <div class="dice-faces">
-        <div class="dice-face" v-for="(emoji, face) in diceFaces" :key="face">
-          <span class="emoji">{{ emoji }}</span>
-          <span class="name">{{ faceNames[face] }}</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { DICE_FACE_EMOJIS, DICE_FACE_NAMES } from '../components/DiceFaces';
-
-const diceFaces = DICE_FACE_EMOJIS;
-const faceNames = DICE_FACE_NAMES;
-</script>
 
 <style scoped>
 .home {
