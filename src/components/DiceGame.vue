@@ -29,16 +29,51 @@
 
     <!-- Current Floor Display -->
     <div class="current-floor" v-if="currentFloor">
-      <h3>{{ currentFloor.level }}층 카드</h3>
+      <h3>{{ currentFloor.level }}층 카드 ({{ currentFloor.cards.length }}장)</h3>
+      <div class="floor-info">
+        <div class="floor-requirement">
+          <span v-if="currentFloor.level <= 3">
+            <strong>획득 조건:</strong> 주사위 마크와 카드 마크 일치
+          </span>
+          <span v-else-if="currentFloor.level === 4">
+            <strong>획득 조건:</strong> 🐟 물고기 주사위 1개 이상
+          </span>
+          <span v-else>
+            <strong>획득 조건:</strong> 자동 획득 (1장)
+          </span>
+        </div>
+      </div>
       <div class="floor-cards">
         <div 
           v-for="card in currentFloor.cards" 
           :key="card.id"
-          :class="['card', getCardTypeClass(card.type)]"
+          :class="['card', 'enhanced-card', getCardTypeClass(card.type)]"
         >
-          <span v-if="card.mark" class="card-emoji">{{ getDiceEmoji(card.mark) }}</span>
-          <span v-else-if="card.type === 'fish'" class="card-emoji">🐟</span>
-          <span v-else-if="card.predator" class="card-text">{{ card.predator }}</span>
+          <div class="card-content">
+            <div class="card-icon">
+              <span v-if="card.mark" class="card-emoji">{{ getDiceEmoji(card.mark) }}</span>
+              <span v-else-if="card.type === 'fish'" class="card-emoji">🐟</span>
+              <span v-else-if="card.predator" class="card-emoji">🦈</span>
+            </div>
+            <div class="card-info">
+              <div class="card-name">
+                <span v-if="card.mark">{{ getDiceName(card.mark) }}</span>
+                <span v-else-if="card.type === 'fish'">물고기</span>
+                <span v-else-if="card.predator">{{ card.predator }}</span>
+              </div>
+              <div class="card-score">
+                <span v-if="card.type === 'bait'">2장=1점</span>
+                <span v-else-if="card.type === 'fish'">3점</span>
+                <span v-else-if="card.type === 'predator'">1점 (먹임시 8-12점)</span>
+              </div>
+              <div v-if="card.type === 'bait'" class="card-requirement">
+                필요: {{ getDiceEmoji(card.mark!) }}
+              </div>
+              <div v-else-if="card.type === 'fish'" class="card-requirement">
+                필요: 🐟
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

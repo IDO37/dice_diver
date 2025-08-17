@@ -1,6 +1,9 @@
 <template>
   <div class="home">
     <div class="hero-section">
+      <div class="hero-image">
+        <img src="/dice-diver-cover.svg" alt="Dice Diver Cover" class="cover-image" />
+      </div>
       <h1 class="hero-title">🤿 Dice Diver</h1>
       <p class="hero-subtitle">심해 탐험 다이스 게임</p>
       <p class="hero-description">
@@ -62,6 +65,20 @@ const faceNames = DICE_FACE_NAMES;
   border-radius: 1rem;
   margin-bottom: 3rem;
   color: white;
+}
+
+.hero-image {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.cover-image {
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .hero-title {
