@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1a2b"/>
+      <stop offset="50%" stop-color="#0b2238"/>
+      <stop offset="100%" stop-color="#0a2c4a"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a065"/>
+      <stop offset="100%" stop-color="#a77d43"/>
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+    <style><![CDATA[
+      .title { font: 900 120px 'Montserrat', 'Pretendard', 'Noto Sans KR', Arial, sans-serif; fill:#f3f8ff; letter-spacing:2px; }
+      .subtitle { font: 600 34px 'Montserrat', 'Pretendard', 'Noto Sans KR', Arial, sans-serif; fill:#97b9d6; letter-spacing:1px; }
+      .stroke-dark { stroke:#0a1524; stroke-width:8; }
+      .card { fill:#10233a; stroke:#2c405a; stroke-width:6; }
+      .accent { fill:#49b3ff; }
+    ]]></style>
+  </defs>
+
+  <!-- Background ocean -->
+  <rect x="0" y="0" width="1200" height="1200" fill="url(#ocean)"/>
+
+  <!-- Title -->
+  <text x="600" y="140" text-anchor="middle" class="title" filter="url(#shadow)">DICE DIVER</text>
+  <text x="600" y="190" text-anchor="middle" class="subtitle">다이스 다이버 • Push Your Luck</text>
+
+  <!-- Seabed -->
+  <path d="M0,980 C240,940 360,1010 600,980 C840,950 990,1020 1200,990 L1200,1200 L0,1200 Z"
+        fill="url(#sand)" filter="url(#shadow)"/>
+
+  <!-- Bubbles -->
+  <g fill="#9fd1ff" opacity="0.5">
+    <circle cx="220" cy="360" r="6"/><circle cx="240" cy="330" r="8"/>
+    <circle cx="260" cy="300" r="5"/><circle cx="900" cy="420" r="6"/>
+    <circle cx="920" cy="390" r="9"/><circle cx="940" cy="360" r="6"/>
+  </g>
+
+  <!-- Diver -->
+  <g transform="translate(320,380)" filter="url(#shadow)">
+    <!-- body -->
+    <rect x="0" y="60" rx="24" ry="24" width="210" height="140" fill="#ff9533" class="stroke-dark"/>
+    <!-- head -->
+    <circle cx="150" cy="40" r="40" fill="#ff9533" class="stroke-dark"/>
+    <!-- tank -->
+    <rect x="-30" y="80" width="36" height="120" rx="12" ry="12" fill="#2a3b56" class="stroke-dark"/>
+    <!-- mask -->
+    <rect x="120" y="20" width="100" height="40" rx="16" ry="16" fill="#49b3ff" class="stroke-dark"/>
+    <path d="M120,40 L60,70" stroke="#0a1524" stroke-width="10" fill="none"/>
+    <!-- arm -->
+    <path d="M30,110 Q-10,110 0,150 Q20,180 50,165" fill="#ff9533" class="stroke-dark"/>
+    <!-- legs + fins -->
+    <path d="M150,200 L170,260 L120,260 Z" fill="#ffd24a" class="stroke-dark"/>
+    <path d="M210,200 L230,260 L180,260 Z" fill="#ffd24a" class="stroke-dark"/>
+  </g>
+
+  <!-- Shark (simple silhouette) -->
+  <g transform="translate(820,380)" filter="url(#shadow)">
+    <path d="M0,60 C40,20 130,20 180,60 C150,70 150,90 180,100 C120,130 40,120 0,90 Z"
+          fill="#5b7591" class="stroke-dark"/>
+    <path d="M70,35 L100,10 L110,40 Z" fill="#5b7591" class="stroke-dark"/>
+    <circle cx="125" cy="65" r="4" fill="#0a1524"/>
+    <path d="M140,76 l16,6 l-16,6" stroke="#0a1524" stroke-width="6" fill="none"/>
+  </g>
+
+  <!-- Dice -->
+  <g transform="translate(220,650)" filter="url(#shadow)">
+    <rect x="0" y="0" width="220" height="220" rx="28" ry="28" fill="#f7eddc" stroke="#2d3646" stroke-width="10"/>
+    <!-- fish symbol -->
+    <ellipse cx="110" cy="110" rx="46" ry="26" fill="#3fb28e" stroke="#1e2b3d" stroke-width="6"/>
+    <polygon points="156,110 190,92 190,128" fill="#3fb28e" stroke="#1e2b3d" stroke-width="6"/>
+    <circle cx="96" cy="104" r="5" fill="#1e2b3d"/>
+  </g>
+
+  <g transform="translate(470,690) rotate(-12)" filter="url(#shadow)">
+    <rect x="0" y="0" width="220" height="220" rx="28" ry="28" fill="#f7eddc" stroke="#2d3646" stroke-width="10"/>
+    <!-- crab symbol -->
+    <circle cx="110" cy="110" r="26" fill="#e5563a" stroke="#1e2b3d" stroke-width="6"/>
+    <path d="M82,96 q-20,-20 -40,0" stroke="#1e2b3d" stroke-width="6" fill="none"/>
+    <path d="M138,96 q20,-20 40,0" stroke="#1e2b3d" stroke-width="6" fill="none"/>
+    <circle cx="92" cy="104" r="4" fill="#1e2b3d"/>
+    <circle cx="128" cy="104" r="4" fill="#1e2b3d"/>
+  </g>
+
+  <!-- Cards -->
+  <g transform="translate(760,820)" filter="url(#shadow)">
+    <rect x="0" y="0" width="160" height="240" rx="20" ry="20" fill="#122844" stroke="#2c405a" stroke-width="8"/>
+    <rect x="14" y="14" width="132" height="212" rx="16" ry="16" fill="#e9f1ff"/>
+    <!-- seaweed icon -->
+    <path d="M70,190 C64,160 86,160 80,130 C74,100 94,100 90,70" stroke="#2aa876" stroke-width="10" fill="none"/>
+  </g>
+
+  <g transform="translate(920,820)" filter="url(#shadow)">
+    <rect x="0" y="0" width="160" height="240" rx="20" ry="20" fill="#122844" stroke="#2c405a" stroke-width="8"/>
+    <rect x="14" y="14" width="132" height="212" rx="16" ry="16" fill="#e9f1ff"/>
+    <!-- clam icon -->
+    <path d="M45,160 q65,-70 110,0 q-55,30 -110,0 Z" fill="#d9a86d" stroke="#8a5f2f" stroke-width="6"/>
+  </g>
+</svg>

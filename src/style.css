@@ -1,11 +1,21 @@
+/* Deep Sea Theme for Dice Diver */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Deep sea color palette */
+  --deep-blue: #0f2027;
+  --ocean-blue: #203a43;
+  --sea-blue: #2c5364;
+  --light-blue: #81d4fa;
+  --accent-blue: #1565c0;
+  --surface-blue: rgba(255, 255, 255, 0.1);
+  --text-light: #e1f5fe;
+  --text-medium: #b3e5fc;
+  
+  color: var(--text-light);
+  background: linear-gradient(135deg, var(--deep-blue), var(--ocean-blue), var(--sea-blue));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,76 +24,172 @@
   -webkit-text-size-adjust: 100%;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
+  background: linear-gradient(135deg, var(--deep-blue), var(--ocean-blue), var(--sea-blue));
+  background-attachment: fixed;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--light-blue);
+  margin: 0 0 1rem 0;
+}
+
+h1 {
+  font-size: 2.5rem;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+p {
+  color: var(--text-medium);
+  line-height: 1.6;
+}
+
+/* Links */
+a {
+  font-weight: 500;
+  color: var(--light-blue);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 0.5rem;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+  display: inline-block;
   text-align: center;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.btn-secondary {
+  background: linear-gradient(45deg, #74b9ff, #0984e3);
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+}
+
+/* Cards */
+.card {
+  background: var(--surface-blue);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-bait {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+}
+
+.card-fish {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+}
+
+.card-predator {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+
+.p-1 { padding: 0.5rem; }
+.p-2 { padding: 1rem; }
+.p-3 { padding: 1.5rem; }
+.p-4 { padding: 2rem; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
   }
-  a:hover {
-    color: #747bff;
+  
+  h2 {
+    font-size: 1.5rem;
   }
-  button {
-    background-color: #f9f9f9;
+  
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
   }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--deep-blue);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--light-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
 }
