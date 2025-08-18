@@ -47,8 +47,16 @@
         <div 
           v-for="card in currentFloor.cards" 
           :key="card.id"
-          :class="['card', 'enhanced-card', getCardTypeClass(card.type)]"
+          :class="['card', 'enhanced-card', getCardTypeClass(card.type), { 'card-acquired': cardAcquisitionEffect === card.id }]"
         >
+          <!-- Dice Marker (Upper Left) -->
+          <div class="card-dice-marker" v-if="card.mark">
+            <span class="dice-marker-emoji">{{ getDiceEmoji(card.mark) }}</span>
+          </div>
+          <div class="card-dice-marker fish-marker" v-else-if="card.type === 'fish'">
+            <span class="dice-marker-emoji">🐟</span>
+          </div>
+          
           <div class="card-content">
             <div class="card-icon">
               <span v-if="card.mark" class="card-emoji">{{ getDiceEmoji(card.mark) }}</span>
@@ -61,18 +69,14 @@
                 <span v-else-if="card.type === 'fish'">물고기</span>
                 <span v-else-if="card.predator">{{ card.predator }}</span>
               </div>
-              <div class="card-score">
-                <span v-if="card.type === 'bait'">2장=1점</span>
-                <span v-else-if="card.type === 'fish'">3점</span>
-                <span v-else-if="card.type === 'predator'">1점 (먹임시 8-12점)</span>
-              </div>
-              <div v-if="card.type === 'bait'" class="card-requirement">
-                필요: {{ getDiceEmoji(card.mark!) }}
-              </div>
-              <div v-else-if="card.type === 'fish'" class="card-requirement">
-                필요: 🐟
-              </div>
             </div>
+          </div>
+          
+          <!-- Score Display (Lower Right) -->
+          <div class="card-score-display">
+            <span v-if="card.type === 'bait'" class="score-text">½점</span>
+            <span v-else-if="card.type === 'fish'" class="score-text">3점</span>
+            <span v-else-if="card.type === 'predator'" class="score-text">1-12점</span>
           </div>
         </div>
       </div>
@@ -85,7 +89,7 @@
         <div 
           v-for="(face, index) in currentDice" 
           :key="index"
-          class="dice"
+          :class="['dice', { 'dice-rolling': isDiceRolling }]"
         >
           <span class="dice-emoji">{{ getDiceEmoji(face) }}</span>
           <span class="dice-name">{{ getDiceName(face) }}</span>
@@ -105,10 +109,11 @@
         <div class="phase-buttons">
           <button 
             @click="rollDivingDice" 
-            class="btn btn-primary"
-            :disabled="gameState.outcome !== 'running'"
+            :class="['btn', 'btn-primary', { 'btn-rolling': isDiceRolling }]"
+            :disabled="gameState.outcome !== 'running' || isDiceRolling"
           >
-            주사위 굴리기 ({{ gameState.diceActive }}개)
+            <span v-if="isDiceRolling">🎲 굴리는 중...</span>
+            <span v-else>🎲 주사위 굴리기 ({{ gameState.diceActive }}개)</span>
           </button>
           <button 
             @click="startExploring" 
@@ -128,10 +133,11 @@
         <div class="phase-buttons">
           <button 
             @click="rollExploringDice" 
-            class="btn btn-primary"
-            :disabled="hasExplored"
+            :class="['btn', 'btn-primary', { 'btn-rolling': isDiceRolling }]"
+            :disabled="hasExplored || isDiceRolling"
           >
-            탐사 주사위 굴리기
+            <span v-if="isDiceRolling">🔍 탐사 중...</span>
+            <span v-else>🔍 탐사 주사위 굴리기</span>
           </button>
           <button 
             @click="endRound" 
@@ -206,31 +212,16 @@
       </div>
     </div>
 
-    <!-- Game End Screen -->
-    <div v-if="gameState.outcome === 'ended'" class="game-end">
-      <div class="end-screen">
-        <h2>🏆 게임 종료!</h2>
-        <div class="final-scores">
-          <div class="score-item">
-            <span>먹이 점수:</span>
-            <span>{{ finalScores.baitScore }}점</span>
-          </div>
-          <div class="score-item">
-            <span>물고기 점수:</span>
-            <span>{{ finalScores.fishScore }}점</span>
-          </div>
-          <div class="score-item">
-            <span>포식자 점수:</span>
-            <span>{{ finalScores.predatorScore }}점</span>
-          </div>
-          <div class="score-item total">
-            <span>총 점수:</span>
-            <span>{{ finalScores.totalScore }}점</span>
-          </div>
-        </div>
-        <button @click="startNewGame" class="btn btn-primary">다시 시작</button>
-      </div>
-    </div>
+    <!-- Enhanced Game End Screen -->
+    <GameEndScreen
+      v-if="showEndScreen && gameResult"
+      :gameResult="gameResult"
+      :baitCount="baitCount"
+      :predatorDetails="predatorDetails"
+      @newGame="startNewGame"
+      @viewScores="viewHighScores"
+      @close="closeEndScreen"
+    />
   </div>
 </template>
 
@@ -259,6 +250,12 @@ import {
   feedPredator
 } from '../game/scoring';
 import { 
+  addGameResult,
+  cleanupOldScores,
+  GameResult
+} from './ScoreManager';
+import GameEndScreen from './GameEndScreen.vue';
+import { 
   DICE_FACE_EMOJIS, 
   DICE_FACE_NAMES,
   CARD_TYPE_COLORS
@@ -272,6 +269,10 @@ const currentDice = ref<Face[]>([]);
 const gamePhase = ref<'diving' | 'exploring'>('diving');
 const hasExplored = ref(false);
 const rules = DEFAULT_RULES;
+const gameResult = ref<GameResult | null>(null);
+const showEndScreen = ref(false);
+const isDiceRolling = ref(false);
+const cardAcquisitionEffect = ref<string | null>(null);
 
 // Computed Properties
 const currentFloor = computed(() => {
@@ -290,6 +291,16 @@ const canForceDive = computed(() => {
 
 const finalScores = computed(() => {
   return calculateTotalScore(gameState);
+});
+
+const baitCount = computed(() => {
+  return Object.values(gameState.inventory.bait).reduce((sum, count) => sum + count, 0);
+});
+
+const predatorDetails = computed(() => {
+  const total = gameState.inventory.predators.length;
+  const fed = gameState.inventory.predators.filter(p => p.eaten).length;
+  return `${fed}/${total} 먹임`;
 });
 
 // Helper Functions
@@ -319,39 +330,60 @@ function startNewGame() {
   currentDice.value = [];
   gamePhase.value = 'diving';
   hasExplored.value = false;
+  showEndScreen.value = false;
+  gameResult.value = null;
+  isDiceRolling.value = false;
+  cardAcquisitionEffect.value = null;
   addLog('새 게임을 시작했습니다!');
 }
 
+function closeEndScreen() {
+  showEndScreen.value = false;
+}
+
+function viewHighScores() {
+  // This could open a high scores modal in the future
+  console.log('High scores feature coming soon!');
+}
+
 function rollDivingDice() {
-  currentDice.value = rollDice(gameState.diceActive);
-  const counts = countFaces(currentDice.value);
+  isDiceRolling.value = true;
   
-  addLog(`주사위를 굴렸습니다: ${formatDiceResult(counts)}`);
-  
-  // 상어 3개 이상이면 라운드 즉시 종료
-  if (counts.shark >= rules.skipIfSharksGTE) {
-    addLog(`상어가 ${counts.shark}개! 라운드를 건너뜁니다.`);
-    endRoundEarly();
-    return;
-  }
-  
-  // 상어 제거
-  gameState.removedThisRound += counts.shark;
-  gameState.diceActive -= counts.shark;
-  
-  // 잠수부로 하강
-  if (counts.diver > 0) {
-    gameState.depth = Math.min(6, gameState.depth + counts.diver);
-    addLog(`${counts.diver}명의 잠수부로 ${gameState.depth}층으로 하강했습니다.`);
-  } else {
-    // 잠수부가 0개면 강제 하강
-    if (gameState.diceActive > 0) {
-      gameState.diceActive--;
-      gameState.removedThisRound++;
+  // Add rolling animation delay
+  setTimeout(() => {
+    currentDice.value = rollDice(gameState.diceActive);
+    const counts = countFaces(currentDice.value);
+    
+    addLog(`주사위를 굴렸습니다: ${formatDiceResult(counts)}`);
+    
+    // 상어 3개 이상이면 라운드 즉시 종료
+    if (counts.shark >= rules.skipIfSharksGTE) {
+      addLog(`상어가 ${counts.shark}개! 라운드를 건너뜁니다.`);
+      endRoundEarly();
+      isDiceRolling.value = false;
+      return;
     }
-    gameState.depth = Math.max(1, gameState.depth + 1);
-    addLog('잠수부가 없어 주사위 1개를 제거하고 1층 강제 하강했습니다.');
-  }
+    
+    // 상어 제거
+    gameState.removedThisRound += counts.shark;
+    gameState.diceActive -= counts.shark;
+    
+    // 잠수부로 하강
+    if (counts.diver > 0) {
+      gameState.depth = Math.min(6, gameState.depth + counts.diver);
+      addLog(`${counts.diver}명의 잠수부로 ${gameState.depth}층으로 하강했습니다.`);
+    } else {
+      // 잠수부가 0개면 강제 하강
+      if (gameState.diceActive > 0) {
+        gameState.diceActive--;
+        gameState.removedThisRound++;
+      }
+      gameState.depth = Math.max(1, gameState.depth + 1);
+      addLog('잠수부가 없어 주사위 1개를 제거하고 1층 강제 하강했습니다.');
+    }
+    
+    isDiceRolling.value = false;
+  }, 1000); // 1 second rolling animation
 }
 
 function startExploring() {
@@ -360,27 +392,35 @@ function startExploring() {
 }
 
 function rollExploringDice() {
-  currentDice.value = rollDice(gameState.diceActive);
-  const counts = countFaces(currentDice.value);
+  isDiceRolling.value = true;
   
-  addLog(`탐사 주사위: ${formatDiceResult(counts)}`);
-  
-  // 층별 탐사 로직
-  const floor = currentFloor.value;
-  if (!floor) return;
-  
-  if (floor.level <= 3) {
-    // 먹이층 (1-3층)
-    exploreBaitFloor(floor, counts);
-  } else if (floor.level === 4) {
-    // 물고기층 (4층)
-    exploreFishFloor(floor, counts);
-  } else {
-    // 포식자층 (5-6층)
-    explorePredatorFloor(floor);
-  }
-  
-  hasExplored.value = true;
+  setTimeout(() => {
+    currentDice.value = rollDice(gameState.diceActive);
+    const counts = countFaces(currentDice.value);
+    
+    addLog(`탐사 주사위: ${formatDiceResult(counts)}`);
+    
+    // 층별 탐사 로직
+    const floor = currentFloor.value;
+    if (!floor) {
+      isDiceRolling.value = false;
+      return;
+    }
+    
+    if (floor.level <= 3) {
+      // 먹이층 (1-3층)
+      exploreBaitFloor(floor, counts);
+    } else if (floor.level === 4) {
+      // 물고기층 (4층)
+      exploreFishFloor(floor, counts);
+    } else {
+      // 포식자층 (5-6층)
+      explorePredatorFloor(floor);
+    }
+    
+    hasExplored.value = true;
+    isDiceRolling.value = false;
+  }, 1000);
 }
 
 function exploreBaitFloor(floor: Floor, counts: Record<Face, number>) {
@@ -392,6 +432,12 @@ function exploreBaitFloor(floor: Floor, counts: Record<Face, number>) {
     if (diceCount > 0 && hasCardWithMark(floor, baitFace)) {
       const card = getFirstCardWithMark(floor, baitFace);
       if (card) {
+        // Trigger card acquisition effect
+        cardAcquisitionEffect.value = card.id;
+        setTimeout(() => {
+          cardAcquisitionEffect.value = null;
+        }, 1500);
+        
         gameState.inventory.bait[baitFace]++;
         floors.value[floor.level - 1] = removeCardFromFloor(floor, card.id);
         acquired++;
@@ -408,6 +454,13 @@ function exploreBaitFloor(floor: Floor, counts: Record<Face, number>) {
 function exploreFishFloor(floor: Floor, counts: Record<Face, number>) {
   if (counts.fish > 0 && floor.cards.length > 0) {
     const fishCard = floor.cards[0];
+    
+    // Trigger card acquisition effect
+    cardAcquisitionEffect.value = fishCard.id;
+    setTimeout(() => {
+      cardAcquisitionEffect.value = null;
+    }, 1500);
+    
     gameState.inventory.fish++;
     floors.value[floor.level - 1] = removeCardFromFloor(floor, fishCard.id);
     addLog('🐟 물고기 획득!');
@@ -419,6 +472,13 @@ function exploreFishFloor(floor: Floor, counts: Record<Face, number>) {
 function explorePredatorFloor(floor: Floor) {
   if (floor.cards.length > 0) {
     const predatorCard = floor.cards[0];
+    
+    // Trigger card acquisition effect
+    cardAcquisitionEffect.value = predatorCard.id;
+    setTimeout(() => {
+      cardAcquisitionEffect.value = null;
+    }, 1500);
+    
     gameState.inventory.predators.push({ ...predatorCard });
     floors.value[floor.level - 1] = removeCardFromFloor(floor, predatorCard.id);
     addLog(`${predatorCard.predator} 포식자 획득!`);
@@ -440,6 +500,13 @@ function endRound() {
   if (gameState.round >= rules.roundsTotal) {
     gameState.outcome = 'ended';
     addLog('게임이 종료되었습니다!');
+    
+    // Create game result and show enhanced end screen
+    gameResult.value = addGameResult(gameState);
+    showEndScreen.value = true;
+    
+    // Clean up old scores
+    cleanupOldScores();
   } else {
     Object.assign(gameState, resetForNextRound(gameState));
     gamePhase.value = 'diving';
@@ -478,10 +545,40 @@ onMounted(() => {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-  border-radius: 1rem;
+  background: linear-gradient(180deg, 
+    rgba(0, 17, 34, 0.95) 0%,     /* Deep ocean surface */
+    rgba(0, 34, 68, 0.9) 25%,     /* Twilight zone */
+    rgba(0, 51, 102, 0.85) 50%,   /* Midnight zone */
+    rgba(0, 17, 51, 0.9) 75%,     /* Abyssal zone */
+    rgba(0, 0, 17, 0.95) 100%     /* Hadal zone */
+  );
+  border-radius: 2rem;
   color: white;
   min-height: 80vh;
+  box-shadow: 0 20px 60px rgba(0, 100, 200, 0.3);
+  border: 1px solid rgba(100, 200, 255, 0.2);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.dice-game::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(100, 200, 255, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(135, 206, 235, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, rgba(0, 191, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dice-game > * {
+  position: relative;
+  z-index: 1;
 }
 
 .game-header {
@@ -489,10 +586,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  background: linear-gradient(135deg, 
+    rgba(100, 200, 255, 0.15) 0%,
+    rgba(135, 206, 235, 0.1) 100%
+  );
+  border-radius: 1rem;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(100, 200, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 100, 200, 0.2);
 }
 
 .game-stats {
@@ -537,11 +639,89 @@ onMounted(() => {
 }
 
 .card {
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  min-width: 60px;
+  padding: 1rem;
+  border-radius: 1rem;
+  min-width: 120px;
+  min-height: 160px;
   text-align: center;
+  font-size: 0.9rem;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 100, 200, 0.4);
+  border-color: rgba(100, 200, 255, 0.5);
+}
+
+.card-acquired {
+  animation: cardAcquisition 1.5s ease-out;
+}
+
+@keyframes cardAcquisition {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(100, 200, 255, 0.8);
+    border-color: rgba(100, 200, 255, 1);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+}
+
+/* Card HUD Elements */
+.card-dice-marker {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(100, 200, 255, 0.9), rgba(135, 206, 235, 0.8));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.fish-marker {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(30, 136, 229, 0.8));
+}
+
+.dice-marker-emoji {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.card-score-display {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 193, 7, 0.8));
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 12px;
   font-size: 0.8rem;
+  font-weight: bold;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.score-text {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .card-bait {
@@ -583,12 +763,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  padding: 1.2rem;
   background: linear-gradient(135deg, #fff, #f5f5f5);
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   color: #333;
-  min-width: 80px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  min-width: 90px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(100, 200, 255, 0.3);
+}
+
+.dice:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 100, 200, 0.4);
+}
+
+.dice-rolling {
+  animation: diceShake 1s ease-in-out;
+}
+
+@keyframes diceShake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(-5deg) scale(1.05); }
+  20% { transform: rotate(5deg) scale(0.95); }
+  30% { transform: rotate(-5deg) scale(1.05); }
+  40% { transform: rotate(5deg) scale(0.95); }
+  50% { transform: rotate(-3deg) scale(1.02); }
+  60% { transform: rotate(3deg) scale(0.98); }
+  70% { transform: rotate(-2deg) scale(1.01); }
+  80% { transform: rotate(2deg) scale(0.99); }
+  90% { transform: rotate(-1deg) scale(1.005); }
 }
 
 .dice-emoji {
@@ -633,14 +837,45 @@ onMounted(() => {
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 2rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 2rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn-rolling {
+  animation: buttonPulse 1s infinite;
+}
+
+@keyframes buttonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .btn:disabled {
@@ -649,23 +884,29 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24, #ff7675);
   color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
+  border-color: rgba(255, 107, 107, 0.5);
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+  border-color: rgba(255, 107, 107, 0.8);
+}
+
 .btn-secondary {
-  background: linear-gradient(45deg, #74b9ff, #0984e3);
+  background: linear-gradient(135deg, #74b9ff, #0984e3, #00b894);
   color: white;
+  border-color: rgba(116, 185, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(116, 185, 255, 0.5);
+  border-color: rgba(116, 185, 255, 0.8);
 }
 
 .btn-small {
