@@ -106,8 +106,6 @@
         </div>
       </div>
         </div>
-      </div>
-    </div>
 
         <!-- Dice Display -->
         <div class="dice-section">
@@ -223,7 +221,6 @@
               {{ entry }}
             </div>
           </div>
-        </div>
         </div>
       </div>
     </div>
