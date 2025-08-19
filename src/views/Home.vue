@@ -33,6 +33,32 @@
       </div>
     </div>
     
+    <!-- Contact Section -->
+    <div class="contact-section">
+      <h2>📧 Contact</h2>
+      <div class="contact-content">
+        <p>Dice Diver 게임에 대한 문의사항이나 피드백이 있으시면 언제든 연락해 주세요!</p>
+        <div class="contact-links">
+          <a href="mailto:developer@dicediver.com" class="contact-link">
+            <span class="contact-icon">📧</span>
+            developer@dicediver.com
+          </a>
+          <a href="https://github.com/developer/dice-diver" target="_blank" class="contact-link">
+            <span class="contact-icon">🐙</span>
+            GitHub
+          </a>
+          <a href="https://dicediver.vercel.app" target="_blank" class="contact-link">
+            <span class="contact-icon">🌐</span>
+            dicediver.vercel.app
+          </a>
+        </div>
+        <div class="game-info">
+          <span><strong>버전:</strong> 1.0.0</span>
+          <span><strong>기술 스택:</strong> Vue 3 + TypeScript</span>
+        </div>
+      </div>
+    </div>
+    
   </div>
 </template>
 
@@ -188,5 +214,99 @@
 .dice-face .name {
   font-weight: bold;
   color: #1565c0;
+}
+
+/* Contact Section */
+.contact-section {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, 
+    rgba(100, 200, 255, 0.1) 0%,
+    rgba(135, 206, 235, 0.05) 100%
+  );
+  border-radius: 1rem;
+  border: 1px solid rgba(100, 200, 255, 0.2);
+  color: white;
+}
+
+.contact-section h2 {
+  text-align: center;
+  color: #81d4fa;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+}
+
+.contact-content {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contact-content p {
+  color: #b3e5fc;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.contact-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2rem;
+  color: #81d4fa;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(100, 200, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.contact-link:hover {
+  background: rgba(100, 200, 255, 0.2);
+  border-color: rgba(100, 200, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(100, 200, 255, 0.3);
+  color: #ffffff;
+}
+
+.contact-icon {
+  font-size: 1.2rem;
+}
+
+.game-info {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #b3e5fc;
+  opacity: 0.8;
+}
+
+.game-info strong {
+  color: #81d4fa;
+}
+
+@media (max-width: 768px) {
+  .contact-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .game-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }
 </style>

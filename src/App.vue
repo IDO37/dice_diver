@@ -11,7 +11,6 @@ import { RouterView } from 'vue-router'
           <RouterLink to="/" class="nav-link">홈</RouterLink>
           <RouterLink to="/rules" class="nav-link">룰</RouterLink>
           <RouterLink to="/game" class="nav-link">게임</RouterLink>
-          <RouterLink to="/contact" class="nav-link">컨택</RouterLink>
         </div>
       </div>
     </nav>

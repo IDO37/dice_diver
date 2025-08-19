@@ -27,56 +27,77 @@
       </div>
     </div>
 
-    <!-- Current Floor Display -->
-    <div class="current-floor" v-if="currentFloor">
-      <h3>{{ currentFloor.level }}층 카드 ({{ currentFloor.cards.length }}장)</h3>
-      <div class="floor-info">
-        <div class="floor-requirement">
-          <span v-if="currentFloor.level <= 3">
-            <strong>획득 조건:</strong> 주사위 마크와 카드 마크 일치
-          </span>
-          <span v-else-if="currentFloor.level === 4">
-            <strong>획득 조건:</strong> 🐟 물고기 주사위 1개 이상
-          </span>
-          <span v-else>
-            <strong>획득 조건:</strong> 자동 획득 (1장)
-          </span>
-        </div>
-      </div>
-      <div class="floor-cards">
+    <!-- Multi-Layer Ocean Display -->
+    <div class="ocean-layers">
+      <h3>🌊 바다 층별 탐사</h3>
+      <div class="layers-container">
         <div 
-          v-for="card in currentFloor.cards" 
-          :key="card.id"
-          :class="['card', 'enhanced-card', getCardTypeClass(card.type), { 'card-acquired': cardAcquisitionEffect === card.id }]"
+          v-for="floor in floors" 
+          :key="floor.level"
+          :class="['ocean-layer', { 'current-layer': floor.level === gameState.depth, 'accessible-layer': canDiveToLayer(floor.level) }]"
         >
-          <!-- Dice Marker (Upper Left) -->
-          <div class="card-dice-marker" v-if="card.mark">
-            <span class="dice-marker-emoji">{{ getDiceEmoji(card.mark) }}</span>
-          </div>
-          <div class="card-dice-marker fish-marker" v-else-if="card.type === 'fish'">
-            <span class="dice-marker-emoji">🐟</span>
-          </div>
-          
-          <div class="card-content">
-            <div class="card-icon">
-              <span v-if="card.mark" class="card-emoji">{{ getDiceEmoji(card.mark) }}</span>
-              <span v-else-if="card.type === 'fish'" class="card-emoji">🐟</span>
-              <span v-else-if="card.predator" class="card-emoji">🦈</span>
-            </div>
-            <div class="card-info">
-              <div class="card-name">
-                <span v-if="card.mark">{{ getDiceName(card.mark) }}</span>
-                <span v-else-if="card.type === 'fish'">물고기</span>
-                <span v-else-if="card.predator">{{ card.predator }}</span>
+          <div class="layer-header">
+            <div class="layer-info">
+              <h4>{{ floor.level }}층 ({{ floor.cards.length }}장)</h4>
+              <div class="layer-requirement">
+                <span v-if="floor.level <= 3">
+                  <strong>획득 조건:</strong> 주사위 마크 일치
+                </span>
+                <span v-else-if="floor.level === 4">
+                  <strong>획득 조건:</strong> 🐟 물고기 주사위 1개 이상
+                </span>
+                <span v-else>
+                  <strong>획득 조건:</strong> 자동 획득 (1장)
+                </span>
               </div>
             </div>
+            <div class="layer-controls" v-if="gamePhase === 'diving' && canDiveToLayer(floor.level)">
+              <button 
+                @click="diveToLayer(floor.level)" 
+                :class="['btn', 'btn-dive', { 'btn-current': floor.level === gameState.depth }]"
+                :disabled="gameState.outcome !== 'running' || isDiceRolling || currentDice.length === 0"
+              >
+                <span v-if="floor.level === gameState.depth">현재 위치</span>
+                <span v-else>{{ floor.level }}층 다이빙</span>
+              </button>
+            </div>
           </div>
-          
-          <!-- Score Display (Lower Right) -->
-          <div class="card-score-display">
-            <span v-if="card.type === 'bait'" class="score-text">½점</span>
-            <span v-else-if="card.type === 'fish'" class="score-text">3점</span>
-            <span v-else-if="card.type === 'predator'" class="score-text">1-12점</span>
+          <div class="floor-cards">
+            <div 
+              v-for="card in floor.cards" 
+              :key="card.id"
+              :class="['card', 'enhanced-card', getCardTypeClass(card.type), { 'card-acquired': cardAcquisitionEffect === card.id, 'card-dimmed': floor.level !== gameState.depth && gamePhase === 'exploring' }]"
+            >
+              <!-- Dice Marker (Upper Left) -->
+              <div class="card-dice-marker" v-if="card.mark">
+                <span class="dice-marker-emoji">{{ getDiceEmoji(card.mark) }}</span>
+              </div>
+              <div class="card-dice-marker fish-marker" v-else-if="card.type === 'fish'">
+                <span class="dice-marker-emoji">🐟</span>
+              </div>
+              
+              <div class="card-content">
+                <div class="card-icon">
+                  <span v-if="card.mark" class="card-emoji">{{ getDiceEmoji(card.mark) }}</span>
+                  <span v-else-if="card.type === 'fish'" class="card-emoji">🐟</span>
+                  <span v-else-if="card.predator" class="card-emoji">🦈</span>
+                </div>
+                <div class="card-info">
+                  <div class="card-name">
+                    <span v-if="card.mark">{{ getDiceName(card.mark) }}</span>
+                    <span v-else-if="card.type === 'fish'">물고기</span>
+                    <span v-else-if="card.predator">{{ card.predator }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Score Display (Lower Right) -->
+              <div class="card-score-display">
+                <span v-if="card.type === 'bait'" class="score-text">½점</span>
+                <span v-else-if="card.type === 'fish'" class="score-text">3점</span>
+                <span v-else-if="card.type === 'predator'" class="score-text">1-12점</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -120,12 +141,15 @@
             class="btn btn-secondary"
             :disabled="gameState.diceActive === 0 || currentDice.length === 0"
           >
-            탐사 시작
+            현재 층에서 탐사
           </button>
         </div>
-        <p v-if="canForceDive" class="force-dive-notice">
-          잠수부가 없습니다! 주사위 1개를 제거하고 1층 강제 하강합니다.
-        </p>
+        <div v-if="currentDice.length > 0" class="diving-instructions">
+          <p>🎯 원하는 층의 다이빙 버튼을 클릭하여 해당 층으로 이동하세요!</p>
+          <p v-if="canForceDive" class="force-dive-notice">
+            ⚠️ 잠수부가 없습니다! 층 선택 시 주사위 1개가 제거됩니다.
+          </p>
+        </div>
       </div>
 
       <div v-else-if="gamePhase === 'exploring'" class="exploring-phase">
@@ -246,7 +270,6 @@ import {
   getFirstCardWithMark
 } from '../game/deck';
 import { 
-  calculateTotalScore,
   feedPredator
 } from '../game/scoring';
 import { 
@@ -289,9 +312,10 @@ const canForceDive = computed(() => {
          diceCounts.value.diver === 0;
 });
 
-const finalScores = computed(() => {
-  return calculateTotalScore(gameState);
-});
+// Remove unused computed property
+// const finalScores = computed(() => {
+//   return calculateTotalScore(gameState);
+// });
 
 const baitCount = computed(() => {
   return Object.values(gameState.inventory.bait).reduce((sum, count) => sum + count, 0);
@@ -320,6 +344,56 @@ function canFeedPredator(predator: Card): boolean {
   if (!predator.predator || predator.eaten || !predatorBaitMapping.value) return false;
   const requiredBait = predatorBaitMapping.value[predator.predator];
   return gameState.inventory.bait[requiredBait] > 0;
+}
+
+function canDiveToLayer(targetLevel: number): boolean {
+  if (gamePhase.value !== 'diving' || currentDice.value.length === 0) return false;
+  
+  const counts = countFaces(currentDice.value);
+  const diverCount = counts.diver;
+  
+  // Can always dive to accessible layers if you have divers or can force dive
+  if (diverCount > 0) {
+    // With divers, can dive to any layer within range
+    const maxDepth = Math.min(6, gameState.depth + diverCount);
+    return targetLevel >= gameState.depth && targetLevel <= maxDepth;
+  } else {
+    // Without divers, can only force dive one layer down
+    return targetLevel === Math.min(6, gameState.depth + 1);
+  }
+}
+
+function diveToLayer(targetLevel: number): void {
+  if (!canDiveToLayer(targetLevel)) return;
+  
+  const counts = countFaces(currentDice.value);
+  const diverCount = counts.diver;
+  
+  // Remove sharks first
+  if (counts.shark >= rules.skipIfSharksGTE) {
+    addLog(`상어가 ${counts.shark}개! 라운드를 건너뜁니다.`);
+    endRoundEarly();
+    return;
+  }
+  
+  // Remove sharks from active dice
+  gameState.removedThisRound += counts.shark;
+  gameState.diceActive -= counts.shark;
+  
+  // Handle diving to target layer
+  if (diverCount > 0) {
+    // Normal diving with divers
+    gameState.depth = targetLevel;
+    addLog(`${diverCount}명의 잠수부로 ${targetLevel}층으로 다이빙했습니다.`);
+  } else {
+    // Force dive (no divers)
+    if (gameState.diceActive > 0) {
+      gameState.diceActive--;
+      gameState.removedThisRound++;
+    }
+    gameState.depth = targetLevel;
+    addLog(`잠수부가 없어 주사위 1개를 제거하고 ${targetLevel}층으로 강제 하강했습니다.`);
+  }
 }
 
 // Game Actions
@@ -364,23 +438,8 @@ function rollDivingDice() {
       return;
     }
     
-    // 상어 제거
-    gameState.removedThisRound += counts.shark;
-    gameState.diceActive -= counts.shark;
-    
-    // 잠수부로 하강
-    if (counts.diver > 0) {
-      gameState.depth = Math.min(6, gameState.depth + counts.diver);
-      addLog(`${counts.diver}명의 잠수부로 ${gameState.depth}층으로 하강했습니다.`);
-    } else {
-      // 잠수부가 0개면 강제 하강
-      if (gameState.diceActive > 0) {
-        gameState.diceActive--;
-        gameState.removedThisRound++;
-      }
-      gameState.depth = Math.max(1, gameState.depth + 1);
-      addLog('잠수부가 없어 주사위 1개를 제거하고 1층 강제 하강했습니다.');
-    }
+    // Show diving options - don't auto-move, let player choose layer
+    addLog('다이빙할 층을 선택하세요!');
     
     isDiceRolling.value = false;
   }, 1000); // 1 second rolling animation
@@ -620,22 +679,178 @@ onMounted(() => {
   color: #81d4fa;
 }
 
-.current-floor {
+/* Multi-Layer Ocean Display */
+.ocean-layers {
   margin-bottom: 2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 0.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, 
+    rgba(0, 50, 100, 0.1) 0%,
+    rgba(0, 30, 80, 0.15) 100%
+  );
+  border-radius: 1rem;
+  border: 1px solid rgba(100, 200, 255, 0.2);
 }
 
-.current-floor h3 {
-  margin-bottom: 1rem;
+.ocean-layers h3 {
+  margin-bottom: 1.5rem;
   color: #81d4fa;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.layers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ocean-layer {
+  padding: 1rem;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(100, 200, 255, 0.08) 100%
+  );
+  border-radius: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ocean-layer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 70%, rgba(100, 200, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ocean-layer > * {
+  position: relative;
+  z-index: 1;
+}
+
+.current-layer {
+  border-color: rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(255, 215, 0, 0.1) 0%,
+    rgba(255, 193, 7, 0.15) 100%
+  );
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.accessible-layer {
+  border-color: rgba(100, 200, 255, 0.4);
+}
+
+.accessible-layer:hover {
+  border-color: rgba(100, 200, 255, 0.6);
+  box-shadow: 0 4px 15px rgba(100, 200, 255, 0.2);
+}
+
+.layer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.layer-info h4 {
+  color: #81d4fa;
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.layer-requirement {
+  font-size: 0.85rem;
+  color: #b3e5fc;
+  opacity: 0.9;
+}
+
+.layer-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-dive {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #00bcd4, #0097a7);
+  color: white;
+  border: 2px solid rgba(0, 188, 212, 0.5);
+  border-radius: 1.5rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-dive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-dive:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.btn-dive:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+  border-color: rgba(0, 188, 212, 0.8);
+}
+
+.btn-current {
+  background: linear-gradient(135deg, #ffc107, #ff8f00);
+  border-color: rgba(255, 193, 7, 0.5);
+  color: #000;
+  font-weight: bold;
+}
+
+.btn-current:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+  border-color: rgba(255, 193, 7, 0.8);
 }
 
 .floor-cards {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  min-height: 60px;
+}
+
+.card-dimmed {
+  opacity: 0.6;
+  filter: grayscale(0.3);
+}
+
+.diving-instructions {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, 
+    rgba(100, 200, 255, 0.1) 0%,
+    rgba(135, 206, 235, 0.05) 100%
+  );
+  border-radius: 0.5rem;
+  border: 1px solid rgba(100, 200, 255, 0.2);
+}
+
+.diving-instructions p {
+  margin: 0.5rem 0;
+  color: #b3e5fc;
+  font-size: 0.9rem;
 }
 
 .card {
@@ -1104,6 +1319,30 @@ onMounted(() => {
   }
   
   .phase-buttons {
+    justify-content: center;
+  }
+  
+  .layer-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .layer-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-dive {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .ocean-layers {
+    padding: 1rem;
+  }
+  
+  .floor-cards {
     justify-content: center;
   }
 }
