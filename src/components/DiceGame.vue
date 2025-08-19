@@ -132,38 +132,28 @@
 
       <!-- Right Column: Controls and Info -->
       <div class="right-column">
-
-    <!-- Game Phase Controls -->
-    <div class="phase-controls">
-      <div v-if="gamePhase === 'diving'" class="diving-phase">
-        <h3>🤿 잠수 단계</h3>
-        <div class="phase-buttons">
-          <button 
-            @click="rollDivingDice" 
-            :class="['btn', 'btn-primary', { 'btn-rolling': isDiceRolling }]"
-            :disabled="gameState.outcome !== 'running' || isDiceRolling"
-          >
-            <span v-if="isDiceRolling">🎲 굴리는 중...</span>
-            <span v-else>🎲 주사위 굴리기 ({{ gameState.diceActive }}개)</span>
-          </button>
-          <button 
-            @click="startExploring" 
-            class="btn btn-secondary"
-            :disabled="gameState.diceActive === 0 || currentDice.length === 0"
-          >
-            현재 층에서 탐사
-          </button>
-        </div>
-        <div v-if="currentDice.length > 0" class="diving-instructions">
-          <p v-if="!shouldShowSkipButton">🎯 원하는 층의 다이빙 버튼을 클릭하여 해당 층으로 이동하세요!</p>
-          <p v-if="canForceDive && !shouldShowSkipButton" class="force-dive-notice">
-            ⚠️ 잠수부가 없습니다! 층 선택 시 주사위 1개가 제거됩니다.
-          </p>
-          <div v-if="shouldShowSkipButton" class="shark-warning">
-            <p>🦈 상어가 너무 많습니다! 이 라운드를 건너뛰거나 위험을 감수하고 다이빙할 수 있습니다.</p>
-            <button @click="endRoundEarly" class="btn btn-warning">
-              라운드 건너뛰기
-            </button>
+        <!-- Game Phase Controls -->
+        <div class="phase-controls">
+          <div v-if="gamePhase === 'diving'" class="diving-phase">
+            <h3>🤿 잠수 단계</h3>
+            <div class="phase-buttons">
+              <button 
+                @click="rollDivingDice" 
+                :class="['btn', 'btn-primary', { 'btn-rolling': isDiceRolling }]"
+                :disabled="gameState.outcome !== 'running' || isDiceRolling"
+              >
+                <span v-if="isDiceRolling">🎲 굴리는 중...</span>
+                <span v-else>🎲 주사위 굴리기 ({{ gameState.diceActive }}개)</span>
+              </button>
+              <button 
+                v-if="hasNoPossibleActions" 
+                @click="endRoundEarly" 
+                class="btn btn-secondary"
+                :disabled="gameState.outcome !== 'running'"
+              >
+                ⏭️ 라운드 건너뛰기
+              </button>
+            </div>
           </div>
         </div>
         <div v-if="hasNoPossibleActions" class="no-actions">
@@ -172,29 +162,6 @@
             라운드 건너뛰기
           </button>
         </div>
-      </div>
-
-      <div v-else-if="gamePhase === 'exploring'" class="exploring-phase">
-        <h3>🔍 탐사 단계</h3>
-        <div class="phase-buttons">
-          <button 
-            @click="rollExploringDice" 
-            :class="['btn', 'btn-primary', { 'btn-rolling': isDiceRolling }]"
-            :disabled="hasExplored || isDiceRolling"
-          >
-            <span v-if="isDiceRolling">🔍 탐사 중...</span>
-            <span v-else>🔍 탐사 주사위 굴리기</span>
-          </button>
-          <button 
-            @click="endRound" 
-            class="btn btn-secondary"
-            :disabled="!hasExplored"
-          >
-            라운드 종료
-          </button>
-        </div>
-      </div>
-    </div>
 
         <!-- Inventory -->
         <div class="inventory">
@@ -256,6 +223,7 @@
               {{ entry }}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
