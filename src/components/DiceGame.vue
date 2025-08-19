@@ -27,7 +27,11 @@
       </div>
     </div>
 
-    <!-- Multi-Layer Ocean Display -->
+    <!-- Two Column Layout -->
+    <div class="game-layout">
+      <!-- Left Column: Floor Exploration -->
+      <div class="left-column">
+        <!-- Multi-Layer Ocean Display -->
     <div class="ocean-layers">
       <h3>🌊 바다 층별 탐사</h3>
       <div class="layers-container">
@@ -101,27 +105,33 @@
           </div>
         </div>
       </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Dice Display -->
-    <div class="dice-section">
-      <h3>주사위 결과</h3>
-      <div class="dice-container">
-        <div 
-          v-for="(face, index) in currentDice" 
-          :key="index"
-          :class="['dice', { 'dice-rolling': isDiceRolling }]"
-        >
-          <span class="dice-emoji">{{ getDiceEmoji(face) }}</span>
-          <span class="dice-name">{{ getDiceName(face) }}</span>
+        <!-- Dice Display -->
+        <div class="dice-section">
+          <h3>주사위 결과</h3>
+          <div class="dice-container">
+            <div 
+              v-for="(face, index) in currentDice" 
+              :key="index"
+              :class="['dice', { 'dice-rolling': isDiceRolling }]"
+            >
+              <span class="dice-emoji">{{ getDiceEmoji(face) }}</span>
+              <span class="dice-name">{{ getDiceName(face) }}</span>
+            </div>
+          </div>
+          <div class="dice-summary" v-if="currentDice.length > 0">
+            <div v-for="(count, face) in diceCounts" :key="face" class="dice-count">
+              <span>{{ getDiceEmoji(face as Face) }} {{ count }}개</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="dice-summary" v-if="currentDice.length > 0">
-        <div v-for="(count, face) in diceCounts" :key="face" class="dice-count">
-          <span>{{ getDiceEmoji(face as Face) }} {{ count }}개</span>
-        </div>
-      </div>
-    </div>
+
+      <!-- Right Column: Controls and Info -->
+      <div class="right-column">
 
     <!-- Game Phase Controls -->
     <div class="phase-controls">
@@ -145,10 +155,22 @@
           </button>
         </div>
         <div v-if="currentDice.length > 0" class="diving-instructions">
-          <p>🎯 원하는 층의 다이빙 버튼을 클릭하여 해당 층으로 이동하세요!</p>
-          <p v-if="canForceDive" class="force-dive-notice">
+          <p v-if="!shouldShowSkipButton">🎯 원하는 층의 다이빙 버튼을 클릭하여 해당 층으로 이동하세요!</p>
+          <p v-if="canForceDive && !shouldShowSkipButton" class="force-dive-notice">
             ⚠️ 잠수부가 없습니다! 층 선택 시 주사위 1개가 제거됩니다.
           </p>
+          <div v-if="shouldShowSkipButton" class="shark-warning">
+            <p>🦈 상어가 너무 많습니다! 이 라운드를 건너뛰거나 위험을 감수하고 다이빙할 수 있습니다.</p>
+            <button @click="endRoundEarly" class="btn btn-warning">
+              라운드 건너뛰기
+            </button>
+          </div>
+        </div>
+        <div v-if="hasNoPossibleActions" class="no-actions">
+          <p>🚫 사용할 수 있는 주사위가 없습니다.</p>
+          <button @click="endRoundEarly" class="btn btn-secondary">
+            라운드 건너뛰기
+          </button>
         </div>
       </div>
 
@@ -174,64 +196,66 @@
       </div>
     </div>
 
-    <!-- Inventory -->
-    <div class="inventory">
-      <h3>인벤토리</h3>
-      <div class="inventory-grid">
-        <div class="inventory-section">
-          <h4>🦀 먹이</h4>
-          <div class="bait-counts">
-            <div v-for="(count, bait) in gameState.inventory.bait" :key="bait" class="bait-item">
-              <span v-if="count > 0">{{ getDiceEmoji(bait as Face) }} {{ count }}개</span>
+        <!-- Inventory -->
+        <div class="inventory">
+          <h3>인벤토리</h3>
+          <div class="inventory-grid">
+            <div class="inventory-section">
+              <h4>🦀 먹이</h4>
+              <div class="bait-counts">
+                <div v-for="(count, bait) in gameState.inventory.bait" :key="bait" class="bait-item">
+                  <span v-if="count > 0">{{ getDiceEmoji(bait as Face) }} {{ count }}개</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="inventory-section">
+              <h4>🐟 물고기</h4>
+              <p>{{ gameState.inventory.fish }}마리</p>
+            </div>
+            
+            <div class="inventory-section">
+              <h4>🦈 포식자</h4>
+              <div class="predator-list">
+                <div 
+                  v-for="predator in gameState.inventory.predators" 
+                  :key="predator.id"
+                  class="predator-item"
+                >
+                  <span>{{ predator.predator }}</span>
+                  <span v-if="predator.eaten" class="fed-status">✅ 먹임 ({{ predator.fedScore }}점)</span>
+                  <button 
+                    v-else-if="canFeedPredator(predator)"
+                    @click="feedPredatorAction(predator.id)"
+                    class="btn btn-small"
+                  >
+                    먹이 주기
+                  </button>
+                  <span v-else class="unfed-status">🍽️ 기본 1점</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        
-        <div class="inventory-section">
-          <h4>🐟 물고기</h4>
-          <p>{{ gameState.inventory.fish }}마리</p>
-        </div>
-        
-        <div class="inventory-section">
-          <h4>🦈 포식자</h4>
-          <div class="predator-list">
-            <div 
-              v-for="predator in gameState.inventory.predators" 
-              :key="predator.id"
-              class="predator-item"
-            >
-              <span>{{ predator.predator }}</span>
-              <span v-if="predator.eaten" class="fed-status">✅ 먹임 ({{ predator.fedScore }}점)</span>
-              <button 
-                v-else-if="canFeedPredator(predator)"
-                @click="feedPredatorAction(predator.id)"
-                class="btn btn-small"
-              >
-                먹이 주기
-              </button>
-              <span v-else class="unfed-status">🍽️ 기본 1점</span>
+
+        <!-- Predator-Bait Mapping -->
+        <div class="predator-mapping" v-if="predatorBaitMapping">
+          <h3>포식자-먹이 매핑</h3>
+          <div class="mapping-grid">
+            <div v-for="(bait, predator) in predatorBaitMapping" :key="predator" class="mapping-item">
+              <span>{{ predator }} → {{ getDiceEmoji(bait) }} {{ getDiceName(bait) }}</span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Predator-Bait Mapping -->
-    <div class="predator-mapping" v-if="predatorBaitMapping">
-      <h3>포식자-먹이 매핑</h3>
-      <div class="mapping-grid">
-        <div v-for="(bait, predator) in predatorBaitMapping" :key="predator" class="mapping-item">
-          <span>{{ predator }} → {{ getDiceEmoji(bait) }} {{ getDiceName(bait) }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Game Log -->
-    <div class="game-log">
-      <h3>게임 로그</h3>
-      <div class="log-container">
-        <div v-for="(entry, index) in gameState.log.slice(0, 10)" :key="index" class="log-entry">
-          {{ entry }}
+        <!-- Game Log -->
+        <div class="game-log">
+          <h3>게임 로그</h3>
+          <div class="log-container">
+            <div v-for="(entry, index) in gameState.log.slice(0, 10)" :key="index" class="log-entry">
+              {{ entry }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -310,6 +334,19 @@ const canForceDive = computed(() => {
   return gamePhase.value === 'diving' && 
          currentDice.value.length > 0 && 
          diceCounts.value.diver === 0;
+});
+
+const shouldShowSkipButton = computed(() => {
+  if (gamePhase.value !== 'diving' || currentDice.value.length === 0) return false;
+  const counts = countFaces(currentDice.value);
+  return counts.shark >= rules.skipIfSharksGTE;
+});
+
+const hasNoPossibleActions = computed(() => {
+  if (gamePhase.value === 'diving') {
+    return gameState.diceActive === 0 && currentDice.value.length === 0;
+  }
+  return false;
 });
 
 // Remove unused computed property
@@ -430,16 +467,12 @@ function rollDivingDice() {
     
     addLog(`주사위를 굴렸습니다: ${formatDiceResult(counts)}`);
     
-    // 상어 3개 이상이면 라운드 즉시 종료
+    // Show dice results even with 3+ sharks - let player see what happened
     if (counts.shark >= rules.skipIfSharksGTE) {
-      addLog(`상어가 ${counts.shark}개! 라운드를 건너뜁니다.`);
-      endRoundEarly();
-      isDiceRolling.value = false;
-      return;
+      addLog(`상어가 ${counts.shark}개! 라운드를 건너뛸 수 있습니다.`);
+    } else {
+      addLog('다이빙할 층을 선택하세요!');
     }
-    
-    // Show diving options - don't auto-move, let player choose layer
-    addLog('다이빙할 층을 선택하세요!');
     
     isDiceRolling.value = false;
   }, 1000); // 1 second rolling animation
@@ -601,7 +634,7 @@ onMounted(() => {
 
 <style scoped>
 .dice-game {
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
   background: linear-gradient(180deg, 
@@ -611,14 +644,38 @@ onMounted(() => {
     rgba(0, 17, 51, 0.9) 75%,     /* Abyssal zone */
     rgba(0, 0, 17, 0.95) 100%     /* Hadal zone */
   );
-  border-radius: 2rem;
+  border-radius: 1.5rem;
   color: white;
-  min-height: 80vh;
-  box-shadow: 0 20px 60px rgba(0, 100, 200, 0.3);
+  min-height: 70vh;
+  box-shadow: 0 15px 45px rgba(0, 100, 200, 0.3);
   border: 1px solid rgba(100, 200, 255, 0.2);
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  transform: scale(0.9);
+  transform-origin: top center;
+}
+
+/* Two Column Layout */
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .dice-game::before {
@@ -681,13 +738,13 @@ onMounted(() => {
 
 /* Multi-Layer Ocean Display */
 .ocean-layers {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
   background: linear-gradient(180deg, 
     rgba(0, 50, 100, 0.1) 0%,
     rgba(0, 30, 80, 0.15) 100%
   );
-  border-radius: 1rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(100, 200, 255, 0.2);
 }
 
@@ -705,13 +762,13 @@ onMounted(() => {
 }
 
 .ocean-layer {
-  padding: 1rem;
+  padding: 0.75rem;
   background: linear-gradient(135deg, 
     rgba(255, 255, 255, 0.05) 0%,
     rgba(100, 200, 255, 0.08) 100%
   );
-  border-radius: 0.75rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -853,19 +910,64 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-.card {
+.shark-warning {
   padding: 1rem;
-  border-radius: 1rem;
-  min-width: 120px;
-  min-height: 160px;
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 0.15) 0%,
+    rgba(238, 90, 36, 0.1) 100%
+  );
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 107, 107, 0.3);
   text-align: center;
-  font-size: 0.9rem;
+}
+
+.shark-warning p {
+  color: #ffcdd2;
+  margin-bottom: 1rem;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+  border: 2px solid rgba(255, 152, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+}
+
+.btn-warning:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 152, 0, 0.5);
+  border-color: rgba(255, 152, 0, 0.8);
+}
+
+.no-actions {
+  padding: 1rem;
+  background: linear-gradient(135deg, 
+    rgba(158, 158, 158, 0.15) 0%,
+    rgba(117, 117, 117, 0.1) 100%
+  );
+  border-radius: 0.5rem;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+  text-align: center;
+}
+
+.no-actions p {
+  color: #cfd8dc;
+  margin-bottom: 1rem;
+}
+
+.card {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  min-width: 100px;
+  min-height: 130px;
+  text-align: center;
+  font-size: 0.8rem;
   position: relative;
   transition: all 0.3s ease;
   cursor: pointer;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card:hover {
@@ -978,14 +1080,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.2rem;
+  padding: 1rem;
   background: linear-gradient(135deg, #fff, #f5f5f5);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
   color: #333;
-  min-width: 90px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  min-width: 80px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
-  border: 2px solid rgba(100, 200, 255, 0.3);
+  border: 1px solid rgba(100, 200, 255, 0.3);
 }
 
 .dice:hover {
@@ -1011,12 +1113,12 @@ onMounted(() => {
 }
 
 .dice-emoji {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  margin-bottom: 0.4rem;
 }
 
 .dice-name {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: bold;
 }
 
@@ -1303,6 +1405,16 @@ onMounted(() => {
 @media (max-width: 768px) {
   .dice-game {
     padding: 1rem;
+  }
+  
+  .game-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .right-column {
+    max-height: none;
+    overflow-y: visible;
   }
   
   .game-header {
